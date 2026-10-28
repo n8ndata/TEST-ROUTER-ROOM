@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="th" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+  <meta name="description" content="ระบบบันทึกและติดตามข้อผิดพลาดในการปฏิบัติงาน แผนก ROUTER">
+  <meta name="theme-color" content="#2563eb">
+  <title>ROUTER Dept - Operational Error Tracking System</title>
+
+  <!-- Google Fonts: Prompt for Modern Thai Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Chart.js for Responsive Analytics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+
+  <!-- Custom CSS Design Tokens & Ergonomics -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- =======================================================================
+       1. Top Header (Safe Area Aware)
+       ======================================================================= -->
+  <header class="app-header">
+    <div class="brand-section">
+      <div class="brand-logo-badge">
+        <!-- SVG Router / Machine Icon -->
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+      </div>
+      <div class="brand-title-wrap">
+        <h1>แผนก ROUTER</h1>
+        <p>
+          <span>ระบบบันทึกข้อผิดพลาดในการทำงาน</span>
+          <span class="sync-indicator">
+            <span id="sync-dot" class="sync-dot offline"></span>
+            <span id="sync-status-text">กำลังโหลด...</span>
+          </span>
+        </p>
+      </div>
+    </div>
+
+    <!-- Header Actions (Theme, Sync & Settings) -->
+    <div class="header-actions">
+      <!-- Theme Switcher (Auto Time-based + Manual) -->
+      <button type="button" id="btn-theme-toggle" class="theme-toggle-btn" title="คลิกเพื่อสลับธีม สว่าง / มืด / อัตโนมัติตามเวลา">
+        <span id="theme-mode-text">อัตโนมัติ ⏰</span>
+      </button>
+
+      <!-- Manual Sync Button -->
+      <button type="button" id="btn-manual-sync" class="theme-toggle-btn" title="กดเพื่อดึงข้อมูลล่าสุดจาก Google Sheet ทันที">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+        </svg>
+        <span class="sync-text-label">ซิงค์</span>
+      </button>
+
+      <!-- Admin Back-office Button (การตั้งค่าเชื่อมต่อย้ายเข้าไปอยู่ในโหมด Admin แล้ว) -->
+      <button type="button" id="btn-open-admin" class="btn-touch btn-primary" style="min-height: 40px; padding: 0 0.85rem; font-size: 0.85rem;" title="เข้าสู่ระบบหลังบ้าน / ผู้ดูแล">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+        </svg>
+        <span>Admin</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- =======================================================================
+       2. Main Content Area (With bottom padding ensuring non-compression)
+       ======================================================================= -->
+  <main class="app-main">
+
+    <!-- -------------------------------------------------------------------
+         TAB 1: Form บันทึกข้อผิดพลาด (Modern 1-Col Mobile, 2-Col Tablet/PC)
+         ------------------------------------------------------------------- -->
+    <section id="tab-record" class="tab-content-view">
+      
+      <div class="form-card">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
+          <div>
+            <h2 style="font-size: 1.25rem; font-weight: 700; color: var(--text-main);">📝 ฟอร์มบันทึกข้อผิดพลาดในการปฏิบัติงาน</h2>
+            <p style="font-size: 0.85rem; color: var(--text-muted);">บันทึกเหตุการณ์ของแผนก ROUTER ข้อมูลจะอัพเดทลง Google Sheet อัตโนมัติ</p>
+          </div>
+          <span class="badge" style="background: var(--primary-subtle); color: var(--primary); border: 1px solid var(--primary-border);">
+            Real-time Sync
+          </span>
+        </div>
+
+        <form id="form-incident" novalidate>
+          <div class="form-grid-layout">
+
+            <!-- 1. เลือกรหัสหรือชื่อพนักงาน (ดึงสดจากแผ่นงาน 'รายชื่อพนักงาน') -->
+            <div class="form-field-group col-span-full">
+              <label class="form-label" for="field-employee">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                <span>พนักงานที่ทำความผิดพลาด</span>
+                <span class="required-dot">* (ดึงจากชีต 'รายชื่อพนักงาน')</span>
+              </label>
+              <div class="input-container">
+                <select id="field-employee" class="form-select no-icon" required>
+                  <option value="">กำลังโหลดรายชื่อพนักงานจาก Google Sheet...</option>
+                </select>
+              </div>
+
+              <!-- Preview Card of Selected Employee -->
+              <div id="employee-preview-card" class="hidden" style="margin-top: 0.5rem; padding: 0.75rem 1rem; border-radius: var(--radius-md); background-color: var(--primary-subtle); border: 1px solid var(--primary-border); display: flex; align-items: center; gap: 0.75rem;">
+                <div style="width: 38px; height: 38px; border-radius: 50%; background-color: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-weight: 700;">
+                  ✓
+                </div>
+                <div>
+                  <div id="preview-emp-name" style="font-weight: 700; color: var(--text-main); font-size: 0.95rem;">-</div>
+                  <div id="preview-emp-details" style="font-size: 0.8rem; color: var(--text-muted);">-</div>
+                </div>
+              </div>
+              <input type="hidden" id="field-emp-id">
+            </div>
+
+            <!-- 2. วันที่เกิดเหตุ -->
+            <div class="form-field-group">
+              <label class="form-label" for="field-incident-date">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                <span>วันที่เกิดเหตุ</span>
+                <span class="required-dot">*</span>
+              </label>
+              <input type="date" id="field-incident-date" class="form-input no-icon" required>
+            </div>
+
+            <!-- 3. กะการทำงาน -->
+            <div class="form-field-group">
+              <label class="form-label" for="field-shift">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                <span>กะการทำงาน (Shift)</span>
+                <span class="required-dot">*</span>
+              </label>
+              <select id="field-shift" class="form-select no-icon" required>
+                <option value="กะเช้า">🌅 กะเช้า (08:00 - 20:00)</option>
+                <option value="กะดึก">🌙 กะดึก (20:00 - 08:80)</option>
+              </select>
+            </div>
+
+            <!-- 4. หมายเลขเครื่องจักร Router -->
+            <div class="form-field-group col-span-full">
+              <label class="form-label" for="field-machine">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                <span>หมายเลขเครื่องจักร Router</span>
+                <span class="required-dot">*</span>
+              </label>
+              <select id="field-machine" class="form-select no-icon" required>
+                <optgroup label="TONGTAI (10 - 27, 43 - 54)">
+                  <option value="TONGTAI-10">TONGTAI-10</option>
+                  <option value="TONGTAI-11">TONGTAI-11</option>
+                  <option value="TONGTAI-12">TONGTAI-12</option>
+                  <option value="TONGTAI-13">TONGTAI-13</option>
+                  <option value="TONGTAI-14">TONGTAI-14</option>
+                  <option value="TONGTAI-15">TONGTAI-15</option>
+                  <option value="TONGTAI-16">TONGTAI-16</option>
+                  <option value="TONGTAI-17">TONGTAI-17</option>
+                  <option value="TONGTAI-18">TONGTAI-18</option>
+                  <option value="TONGTAI-19">TONGTAI-19</option>
+                  <option value="TONGTAI-20">TONGTAI-20</option>
+                  <option value="TONGTAI-21">TONGTAI-21</option>
+                  <option value="TONGTAI-22">TONGTAI-22</option>
+                  <option value="TONGTAI-23">TONGTAI-23</option>
+                  <option value="TONGTAI-24">TONGTAI-24</option>
+                  <option value="TONGTAI-25">TONGTAI-25</option>
+                  <option value="TONGTAI-26">TONGTAI-26</option>
+                  <option value="TONGTAI-27">TONGTAI-27</option>
+                  <option value="TONGTAI-43">TONGTAI-43</option>
+                  <option value="TONGTAI-44">TONGTAI-44</option>
+                  <option value="TONGTAI-45">TONGTAI-45</option>
+                  <option value="TONGTAI-46">TONGTAI-46</option>
+                  <option value="TONGTAI-47">TONGTAI-47</option>
+                  <option value="TONGTAI-48">TONGTAI-48</option>
+                  <option value="TONGTAI-49">TONGTAI-49</option>
+                  <option value="TONGTAI-50">TONGTAI-50</option>
+                  <option value="TONGTAI-51">TONGTAI-51</option>
+                  <option value="TONGTAI-52">TONGTAI-52</option>
+                  <option value="TONGTAI-53">TONGTAI-53</option>
+                  <option value="TONGTAI-54">TONGTAI-54</option>
+                </optgroup>
+                <optgroup label="ROUTER_VIA (33 - 42)">
+                  <option value="ROUTER_VIA-33">ROUTER_VIA-33</option>
+                  <option value="ROUTER_VIA-34">ROUTER_VIA-34</option>
+                  <option value="ROUTER_VIA-35">ROUTER_VIA-35</option>
+                  <option value="ROUTER_VIA-36">ROUTER_VIA-36</option>
+                  <option value="ROUTER_VIA-37">ROUTER_VIA-37</option>
+                  <option value="ROUTER_VIA-38">ROUTER_VIA-38</option>
+                  <option value="ROUTER_VIA-39">ROUTER_VIA-39</option>
+                  <option value="ROUTER_VIA-40">ROUTER_VIA-40</option>
+                  <option value="ROUTER_VIA-41">ROUTER_VIA-41</option>
+                  <option value="ROUTER_VIA-42">ROUTER_VIA-42</option>
+                </optgroup>
+              </select>
+            </div>
+
+            <!-- 5. ข้อมูล Part / Model / Lot -->
+            <div class="form-field-group">
+              <label class="form-label" for="field-part-no">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+                <span>Part No.</span>
+              </label>
+              <input type="text" id="field-part-no" class="form-input no-icon" placeholder="ระบุ Part No.">
+            </div>
+
+            <div class="form-field-group">
+              <label class="form-label" for="field-model-no">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="7" y1="7" x2="17" y2="7"></line><line x1="7" y1="12" x2="17" y2="12"></line><line x1="7" y1="17" x2="13" y2="17"></line></svg>
+                <span>Model No.</span>
+              </label>
+              <input type="text" id="field-model-no" class="form-input no-icon" placeholder="ระบุ Model No.">
+            </div>
+
+            <div class="form-field-group col-span-full">
+              <label class="form-label" for="field-lot-no">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                <span>Lot No.</span>
+              </label>
+              <input type="text" id="field-lot-no" class="form-input no-icon" placeholder="ระบุ Lot No.">
+            </div>
+
+            <!-- 6. จำนวนงาน / จำนวนงานเสีย / %NG -->
+            <div class="form-field-group">
+              <label class="form-label" for="field-total-qty">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                <span>จำนวนเต็มของงาน / Sheet</span>
+              </label>
+              <input type="number" id="field-total-qty" class="form-input no-icon" inputmode="numeric" min="0" placeholder="0">
+            </div>
+
+            <div class="form-field-group">
+              <label class="form-label" for="field-ng-qty">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+                <span>จำนวนงานเสีย / NG</span>
+              </label>
+              <input type="number" id="field-ng-qty" class="form-input no-icon" inputmode="numeric" min="0" placeholder="0">
+            </div>
+
+            <div class="form-field-group col-span-full">
+              <label class="form-label" for="field-ng-percent">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10"></path><path d="M12 20V4"></path><path d="M6 20v-6"></path></svg>
+                <span>% NG (คำนวณอัตโนมัติ)</span>
+              </label>
+              <input type="text" id="field-ng-percent" class="form-input no-icon" value="0.00%" readonly style="font-weight: 700; text-align: center;">
+
+
+                        <!-- 6. ประเภทความผิดพลาด พร้อม Quick Chips เพื่อการกดด้วยนิ้วอย่างรวดเร็ว -->
+            <div class="form-field-group col-span-full">
+              <label class="form-label" for="field-category">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                <span>ประเภทความผิดพลาด (Defect Category)</span>
+                <span class="required-dot">*</span>
+              </label>
+              <input type="text" id="field-category" class="form-input no-icon" placeholder="คลิกเลือกจากปุ่มลัดด้านล่าง หรือพิมพ์ระบุเอง" required>
+              
+              <!-- Quick Select Chips for Touch Screens -->
+              <div class="chips-scroll-wrap">
+                <button type="button" class="chip-btn category-chip" data-category="ตั้งค่าโปรแกรม / G-Code ผิดพลาด">⚙️ โปรแกรมผิด</button>
+                <button type="button" class="chip-btn category-chip" data-category="ติดตั้งดอกเราเตอร์ผิดเบอร์ / สึกหรอ">🔪 ดอกเราเตอร์ผิด/หัก</button>
+                <button type="button" class="chip-btn category-chip" data-category="วางชิ้นงาน / จิ๊กไม่แน่น">🗜️ จิ๊กหลวม/ชิ้นงานเอียง</button>
+                <button type="button" class="chip-btn category-chip" data-category="ตัดกินชิ้นงานเกินพิกัด">📏 ตัดกินเนื้อเกินพิกัด</button>
+                <button type="button" class="chip-btn category-chip" data-category="ลืมตรวจสอบ First Piece">🔍 ไม่ตรวจ First Piece</button>
+                <button type="button" class="chip-btn category-chip" data-category="ป้อนรหัส Part Number ผิด">🏷️ ป้อน Part ผิด</button>
+                <button type="button" class="chip-btn category-chip" data-category="ระบบดูดฝุ่นอุดตัน / รอยขีดข่วน">💨 ดูดฝุ่นตัน/เป็นรอย</button>
+                <button type="button" class="chip-btn category-chip" data-category="การละเลยความปลอดภัย / PPE">⚠️ ละเลย PPE/เซฟตี้</button>
+              </div>
+            </div>
+
+            <!-- 7. ระดับความรุนแรง (Severity Pill Cards - Touch Friendly) -->
+            <div class="form-field-group col-span-full">
+              <label class="form-label">
+                <span>ระดับความรุนแรง (Severity Level)</span>
+                <span class="required-dot">*</span>
+              </label>
+              <div class="severity-pill-grid">
+                <label class="severity-pill-card sev-low">
+                  <input type="radio" name="severity" value="เล็กน้อย">
+                  <span>🟢 เล็กน้อย (เตือน)</span>
+                </label>
+                <label class="severity-pill-card sev-med selected">
+                  <input type="radio" name="severity" value="ปานกลาง" checked>
+                  <span>🟡 ปานกลาง (Rework)</span>
+                </label>
+                <label class="severity-pill-card sev-high">
+                  <input type="radio" name="severity" value="สูง">
+                  <span>🟠 สูง (Scrap เสียหาย)</span>
+                </label>
+                <label class="severity-pill-card sev-crit">
+                  <input type="radio" name="severity" value="วิกฤต">
+                  <span>🔴 วิกฤต (เครื่องพัง/หยุดไลน์)</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- 8. รายละเอียดข้อผิดพลาด -->
+            <div class="form-field-group col-span-full">
+              <label class="form-label" for="field-description">
+                <span>รายละเอียดเหตุการณ์ที่เกิดขึ้น</span>
+                <span class="required-dot">*</span>
+              </label>
+              <textarea id="field-description" class="form-textarea" placeholder="อธิบายสิ่งที่เกิดขึ้น ขั้นตอนการทำงานขณะเกิดข้อผิดพลาด และความเสียหายที่พบ..." required></textarea>
+            </div>
+
+            <!-- 9. ผลกระทบ / ความเสียหาย -->
+            <div class="form-field-group">
+              <label class="form-label" for="field-impact">
+                <span>ผลกระทบ / ของเสีย (ชิ้น/บาท)</span>
+              </label>
+              <input type="text" id="field-impact" class="form-input no-icon" placeholder="เช่น เสียหาย 10 ชิ้น, เครื่องหยุด 30 นาที">
+            </div>
+
+            <!-- 10. ผู้บันทึกข้อมูล -->
+            <div class="form-field-group">
+              <label class="form-label" for="field-reporter">
+                <span>ผู้บันทึกข้อมูล (หัวหน้ากะ / ช่าง)</span>
+              </label>
+              <input type="text" id="field-reporter" class="form-input no-icon" placeholder="ระบุชื่อผู้ตรวจพบหรือผู้บันทึก">
+            </div>
+
+            <!-- 11. สาเหตุเบื้องต้น -->
+            <div class="form-field-group">
+              <label class="form-label" for="field-root-cause">
+                <span>สาเหตุเบื้องต้น (Root Cause)</span>
+              </label>
+              <textarea id="field-root-cause" class="form-textarea" style="min-height: 70px;" placeholder="เช่น ไม่ได้ตรวจเช็คตาม Check sheet, สปริงล้า..."></textarea>
+            </div>
+
+            <!-- 12. แนวทางแก้ไขและป้องกัน -->
+            <div class="form-field-group">
+              <label class="form-label" for="field-corrective">
+                <span>แนวทางแก้ไขและการป้องกัน (Corrective Action)</span>
+              </label>
+              <textarea id="field-corrective" class="form-textarea" style="min-height: 70px;" placeholder="เช่น สั่งเปลี่ยนดอกมีดทันที และให้หัวหน้ากะทวนสอบซ้ำ..."></textarea>
+            </div>
+
+            <!-- Action Buttons: Full width on mobile -->
+            <div class="col-span-full" style="margin-top: 0.5rem;">
+              <button type="submit" class="btn-touch btn-primary btn-full" style="font-size: 1.05rem;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                <span>บันทึกข้อมูลข้อผิดพลาด</span>
+              </button>
+            </div>
+
+          </div>
+        </form>
+      </div>
+
+    </section>
+
+
+    <!-- -------------------------------------------------------------------
+         TAB 2: Dashboard แดชบอร์ดสถิติ & Responsive Charts
+         ------------------------------------------------------------------- -->
+    <section id="tab-dashboard" class="tab-content-view hidden">
+      
+      <!-- Metrics Overview Cards -->
+      <div class="metrics-grid">
+        <div class="metric-card" style="--card-accent: #2563eb;">
+          <div class="metric-header">
+            <span class="metric-title">ข้อผิดพลาดทั้งหมด</span>
+            <div class="metric-icon-wrap">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+            </div>
+          </div>
+          <div id="metric-total-count" class="metric-value">0</div>
+          <div class="metric-subtext">รายการสะสมในระบบ</div>
+        </div>
+
+        <div class="metric-card" style="--card-accent: #ef4444;">
+          <div class="metric-header">
+            <span class="metric-title">เคสรุนแรง/วิกฤต</span>
+            <div class="metric-icon-wrap" style="color: #ef4444;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+            </div>
+          </div>
+          <div id="metric-critical-count" class="metric-value" style="color: #ef4444;">0</div>
+          <div class="metric-subtext">ระดับ สูง + วิกฤต</div>
+        </div>
+
+        <div class="metric-card" style="--card-accent: #f59e0b;">
+          <div class="metric-header">
+            <span class="metric-title">รอดำเนินการ/แก้ไข</span>
+            <div class="metric-icon-wrap" style="color: #f59e0b;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+            </div>
+          </div>
+          <div id="metric-pending-count" class="metric-value" style="color: #f59e0b;">0</div>
+          <div class="metric-subtext">ยังไม่ได้ปิดเคส</div>
+        </div>
+
+        <div class="metric-card" style="--card-accent: #10b981;">
+          <div class="metric-header">
+            <span class="metric-title">พนักงานที่พบสูงสุด</span>
+            <div class="metric-icon-wrap" style="color: #10b981;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            </div>
+          </div>
+          <div id="metric-top-emp" class="metric-value" style="font-size: 1.05rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">-</div>
+          <div class="metric-subtext">เพื่อจัดอบรมทบทวน SOP</div>
+        </div>
+      </div>
+
+      <!-- Charts Responsive Grid -->
+      <div class="charts-grid">
+        <!-- 1. Severity Distribution -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <span class="chart-title">📊 สัดส่วนตามระดับความรุนแรง</span>
+          </div>
+          <div class="chart-canvas-wrapper">
+            <canvas id="chart-severity"></canvas>
+          </div>
+        </div>
+
+        <!-- 2. Defect Categories Bar -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <span class="chart-title">🏆 5 อันดับประเภทข้อผิดพลาดสูงสุด</span>
+          </div>
+          <div class="chart-canvas-wrapper">
+            <canvas id="chart-categories"></canvas>
+          </div>
+        </div>
+
+        <!-- 3. Shifts Bar -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <span class="chart-title">⏱️ จำนวนข้อผิดพลาดแยกตามกะการทำงาน</span>
+          </div>
+          <div class="chart-canvas-wrapper">
+            <canvas id="chart-shifts"></canvas>
+          </div>
+        </div>
+
+        <!-- 4. Timeline Trend -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <span class="chart-title">📈 แนวโน้มข้อผิดพลาดในรอบ 7 วัน</span>
+          </div>
+          <div class="chart-canvas-wrapper">
+            <canvas id="chart-timeline"></canvas>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+
+    <!-- -------------------------------------------------------------------
+         TAB 3: ตารางบันทึกข้อมูล (Isolated horizontal scroll)
+         ------------------------------------------------------------------- -->
+    <section id="tab-logs" class="tab-content-view hidden">
+      
+      <div class="table-card">
+        <!-- Toolbar & Filters -->
+        <div class="table-toolbar">
+          <div class="search-filter-wrap">
+            <div class="input-container" style="max-width: 320px;">
+              <span class="input-icon-prefix">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              </span>
+              <input type="text" id="table-search" class="form-input" placeholder="ค้นหาชื่อ, รหัส, เครื่อง, อาการ...">
+            </div>
+
+            <select id="filter-shift" class="form-select no-icon" style="max-width: 140px;">
+              <option value="all">ทุกกะ</option>
+              <option value="กะเช้า">กะเช้า</option>
+              <option value="กะบ่าย">กะบ่าย</option>
+              <option value="กะดึก">กะดึก</option>
+              <option value="กะปกติ">กะปกติ</option>
+            </select>
+
+            <select id="filter-severity" class="form-select no-icon" style="max-width: 140px;">
+              <option value="all">ทุกความรุนแรง</option>
+              <option value="เล็กน้อย">เล็กน้อย</option>
+              <option value="ปานกลาง">ปานกลาง</option>
+              <option value="สูง">สูง</option>
+              <option value="วิกฤต">วิกฤต</option>
+            </select>
+
+            <select id="filter-status" class="form-select no-icon" style="max-width: 140px;">
+              <option value="all">ทุกสถานะ</option>
+              <option value="รอดำเนินการ">รอดำเนินการ</option>
+              <option value="กำลังตรวจสอบ">กำลังตรวจสอบ</option>
+              <option value="อบรมซ้ำแล้ว">อบรมซ้ำแล้ว</option>
+              <option value="ปิดงาน">ปิดงาน</option>
+            </select>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span id="logs-total-count" style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500;">
+              0 รายการ
+            </span>
+            <button type="button" id="btn-export-csv" class="btn-touch btn-secondary" style="min-height: 40px; padding: 0 0.85rem; font-size: 0.85rem;" title="ดาวน์โหลดไฟล์ CSV สำหรับ Excel">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              <span>ส่งออก CSV</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Scrollable Table Container (Only Table Scrolls Horizontally) -->
+        <div class="table-responsive-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>วันที่</th>
+                <th>พนักงาน</th>
+                <th>เครื่องจักร</th>
+                <th>ประเภทความผิดพลาด</th>
+                <th>ความรุนแรง</th>
+                <th>รายละเอียด</th>
+                <th>สถานะ</th>
+                <th>จัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="incidents-table-body">
+              <!-- Rendered dynamically by app.js -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+
+    <!-- -------------------------------------------------------------------
+         TAB 4: รายชื่อพนักงาน (Drawn from Sheet 'รายชื่อพนักงาน')
+         ------------------------------------------------------------------- -->
+    <section id="tab-employees" class="tab-content-view hidden">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+        <div>
+          <h2 style="font-size: 1.25rem; font-weight: 700;">👥 ข้อมูลพนักงาน แผนก ROUTER</h2>
+          <p style="font-size: 0.85rem; color: var(--text-muted);">
+            ดึงข้อมูลอัตโนมัติจาก Google Sheet แผ่นงาน <strong>"รายชื่อพนักงาน"</strong>
+          </p>
+        </div>
+      </div>
+
+      <!-- Employees Cards Grid -->
+      <div id="employees-card-grid" class="metrics-grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
+        <!-- Rendered dynamically by app.js -->
+      </div>
+    </section>
+
+  </main>
+
+
+  <!-- =======================================================================
+       3. Bottom Navigation Bar on Mobile (Non-compressing, Safe Area Aware)
+       ======================================================================= -->
+  <nav class="bottom-nav">
+    <button type="button" class="nav-item active" data-tab="record">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+      <span>บันทึกข้อมูล</span>
+    </button>
+    <button type="button" class="nav-item" data-tab="dashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+      <span>แดชบอร์ด</span>
+    </button>
+    <button type="button" class="nav-item" data-tab="logs">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+      <span>รายการทั้งหมด</span>
+    </button>
+    <button type="button" class="nav-item" data-tab="employees">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+      <span>พนักงาน</span>
+    </button>
+  </nav>
+
+
+  <!-- =======================================================================
+       4. Modals (Safe Area Compliant)
+       ======================================================================= -->
+
+  <!-- Modal A: Admin PIN Authentication -->
+  <div id="modal-admin-auth" class="modal-backdrop">
+    <div class="modal-container" style="max-width: 400px;">
+      <div class="modal-header">
+        <h3 class="modal-title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          <span>เข้าสู่ระบบ Admin</span>
+        </h3>
+        <button type="button" class="modal-close-btn modal-close-trigger">&times;</button>
+      </div>
+      <div class="modal-body text-center">
+        <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+          กรุณากดรหัส PIN 4 หลักเพื่อเข้าสู่ระบบจัดการ (กดผิด 5 ครั้ง ระบบจะล็อคชั่วคราว)
+        </p>
+
+        <!-- Lockout Status (แสดงเมื่อกรอกผิดหรือถูกล็อค) -->
+        <p id="pin-lock-status" style="display: none; font-size: 0.8rem; font-weight: 600; color: #ef4444; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: var(--radius-md); padding: 0.5rem 0.75rem; margin-bottom: 0.5rem;"></p>
+
+        <!-- PIN Display Dots -->
+        <div class="pin-display-wrap">
+          <div class="pin-digit-box"></div>
+          <div class="pin-digit-box"></div>
+          <div class="pin-digit-box"></div>
+          <div class="pin-digit-box"></div>
+        </div>
+
+        <!-- Touch-Friendly Numpad -->
+        <div class="pin-numpad">
+          <button type="button" class="numpad-key" data-key="1">1</button>
+          <button type="button" class="numpad-key" data-key="2">2</button>
+          <button type="button" class="numpad-key" data-key="3">3</button>
+          <button type="button" class="numpad-key" data-key="4">4</button>
+          <button type="button" class="numpad-key" data-key="5">5</button>
+          <button type="button" class="numpad-key" data-key="6">6</button>
+          <button type="button" class="numpad-key" data-key="7">7</button>
+          <button type="button" class="numpad-key" data-key="8">8</button>
+          <button type="button" class="numpad-key" data-key="9">9</button>
+          <button type="button" class="numpad-key" data-key="clear" style="font-size: 0.9rem; color: #ef4444;">ล้าง</button>
+          <button type="button" class="numpad-key" data-key="0">0</button>
+          <button type="button" class="numpad-key" data-key="back">⌫</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Modal B: Edit Incident & Status Management -->
+  <div id="modal-edit-incident" class="modal-backdrop">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 class="modal-title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+          <span>จัดการรายการข้อผิดพลาด</span>
+        </h3>
+        <button type="button" class="modal-close-btn modal-close-trigger">&times;</button>
+      </div>
+
+      <form id="form-edit-incident">
+        <div class="modal-body">
+          <div style="background-color: var(--bg-subtle); padding: 0.85rem 1rem; border-radius: var(--radius-md); margin-bottom: 1rem;">
+            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 600;">
+              <span>รหัส: <span id="edit-modal-id">-</span></span>
+              <span id="edit-modal-emp">-</span>
+            </div>
+            <div id="edit-modal-machine" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">-</div>
+          </div>
+
+          <div class="form-grid-layout" style="gap: 1rem;">
+            <div class="form-field-group col-span-full">
+              <label class="form-label" for="edit-field-status">
+                <span>สถานะการดำเนินงาน</span>
+              </label>
+              <select id="edit-field-status" class="form-select no-icon">
+                <option value="รอดำเนินการ">🟡 รอดำเนินการ</option>
+                <option value="กำลังตรวจสอบ">🔵 กำลังตรวจสอบ</option>
+                <option value="อบรมซ้ำแล้ว">🟣 อบรมซ้ำแล้ว</option>
+                <option value="ปิดงาน">🟢 ปิดงาน (Resolved)</option>
+              </select>
+            </div>
+
+            <div class="form-field-group col-span-full">
+              <label class="form-label" for="edit-field-description">
+                <span>รายละเอียดเหตุการณ์</span>
+              </label>
+              <textarea id="edit-field-description" class="form-textarea"></textarea>
+            </div>
+
+            <div class="form-field-group col-span-full">
+              <label class="form-label" for="edit-field-root-cause">
+                <span>สาเหตุที่แท้จริง (Root Cause)</span>
+              </label>
+              <textarea id="edit-field-root-cause" class="form-textarea" style="min-height: 70px;"></textarea>
+            </div>
+
+            <div class="form-field-group col-span-full">
+              <label class="form-label" for="edit-field-corrective">
+                <span>การแก้ไขและการป้องกัน (Corrective / Preventive Action)</span>
+              </label>
+              <textarea id="edit-field-corrective" class="form-textarea" style="min-height: 70px;"></textarea>
+            </div>
+
+            <div class="form-field-group col-span-full">
+              <label class="form-label" for="edit-field-notes">
+                <span>หมายเหตุเพิ่มเติม</span>
+              </label>
+              <input type="text" id="edit-field-notes" class="form-input no-icon">
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer" style="display: flex; justify-content: space-between;">
+          <button type="button" id="btn-delete-incident" class="btn-touch btn-danger" style="min-height: 44px; padding: 0 1rem; font-size: 0.875rem;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            <span>ลบรายการนี้</span>
+          </button>
+          
+          <div style="display: flex; gap: 0.5rem;">
+            <button type="button" class="btn-touch btn-secondary modal-close-trigger" style="min-height: 44px; padding: 0 1rem; font-size: 0.875rem;">
+              ยกเลิก
+            </button>
+            <button type="submit" class="btn-touch btn-primary" style="min-height: 44px; padding: 0 1.25rem; font-size: 0.875rem;">
+              บันทึกการแก้ไข
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- Modal C: Google Apps Script Web App Connection Settings -->
+  <div id="modal-gas-settings" class="modal-backdrop">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 class="modal-title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          <span>ตั้งค่าการเชื่อมต่อ Google Sheets</span>
+        </h3>
+        <button type="button" class="modal-close-btn modal-close-trigger">&times;</button>
+      </div>
+
+      <form id="form-gas-settings">
+        <div class="modal-body">
+          <div style="background-color: var(--primary-subtle); border: 1px solid var(--primary-border); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1.25rem;">
+            <div style="font-weight: 700; color: var(--primary); font-size: 0.9rem; margin-bottom: 0.25rem;">
+              วิธีเชื่อมต่อกับ Google Sheets
+            </div>
+            <ol style="font-size: 0.825rem; color: var(--text-main); padding-left: 1.25rem; line-height: 1.6;">
+              <li>เปิด Google Sheets ➔ <strong>ส่วนขยาย (Extensions)</strong> ➔ <strong>Apps Script</strong></li>
+              <li>วางโค้ดจากไฟล์ <code>google-apps-script/Code.gs</code></li>
+              <li>กด Deploy เป็น Web App (สิทธิ์เข้าถึง: <strong>ทุกคน / Anyone</strong>)</li>
+              <li>คัดลอก URL ที่ได้มาวางลงในช่องด้านล่าง</li>
+            </ol>
+          </div>
+
+          <div class="form-field-group">
+            <label class="form-label" for="field-gas-url">
+              <span>Google Apps Script Web App URL</span>
+            </label>
+            <input type="url" id="field-gas-url" class="form-input no-icon" placeholder="https://script.google.com/macros/s/.../exec">
+            <div style="font-size: 0.775rem; color: var(--text-muted); margin-top: 0.35rem;">
+              * หากปล่อยว่าง ระบบจะทำงานในโหมดออฟไลน์และเก็บข้อมูลในเครื่อง (LocalStorage)
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-touch btn-secondary modal-close-trigger" style="min-height: 44px; padding: 0 1.25rem;">
+            ยกเลิก
+          </button>
+          <button type="submit" class="btn-touch btn-primary" style="min-height: 44px; padding: 0 1.5rem;">
+            บันทึกและซิงค์ทันที
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- Modal D: Admin Dashboard / Back-office Overview -->
+  <div id="modal-admin-panel" class="modal-backdrop">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 class="modal-title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          <span>ศูนย์ควบคุมผู้ดูแลระบบ (Admin Control)</span>
+        </h3>
+        <button type="button" class="modal-close-btn modal-close-trigger">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div style="border: 1px solid var(--border-subtle); border-radius: var(--radius-md); background: var(--bg-subtle); padding: 1rem; margin-bottom: 1.5rem;">
+          <div style="font-weight: 700; margin-bottom: 0.5rem;">📊 สรุปสถานะข้อมูลล่าสุด</div>
+          <div id="admin-panel-kpis" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.6rem;"></div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+          <div style="padding: 1.25rem; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); background: var(--bg-subtle);">
+            <div style="font-weight: 700; margin-bottom: 0.25rem;">📤 ส่งออกข้อมูล</div>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">ส่งออกบันทึกข้อผิดพลาดทั้งหมดเป็นไฟล์ Excel CSV</p>
+            <button type="button" onclick="document.getElementById('btn-export-csv').click()" class="btn-touch btn-secondary" style="width: 100%; min-height: 40px; font-size: 0.85rem;">
+              ดาวน์โหลด CSV (UTF-8)
+            </button>
+          </div>
+
+          <div style="padding: 1.25rem; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); background: var(--bg-subtle);">
+            <div style="font-weight: 700; margin-bottom: 0.25rem;">🔗 Google Sheets URL</div>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">ตรวจสอบหรือเปลี่ยนลิงก์เชื่อมต่อ API Web App</p>
+            <button type="button" id="btn-admin-open-settings" class="btn-touch btn-secondary" style="width: 100%; min-height: 40px; font-size: 0.85rem;">
+              แก้ไขการเชื่อมต่อ
+            </button>
+          </div>
+
+          <div style="padding: 1.25rem; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); background: var(--bg-subtle);">
+            <div style="font-weight: 700; margin-bottom: 0.25rem;">🔑 เปลี่ยนรหัสผ่าน Admin PIN</div>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">เปลี่ยนรหัส PIN 4 หลักสำหรับเข้าจัดการระบบ</p>
+            <button type="button" id="btn-change-pin" class="btn-touch btn-secondary" style="width: 100%; min-height: 40px; font-size: 0.85rem;">
+              เปลี่ยนรหัส PIN
+            </button>
+          </div>
+        </div>
+
+          <div style="padding: 1.25rem; border: 1px solid rgba(239, 68, 68, 0.35); border-radius: var(--radius-md); background: var(--bg-subtle);">
+            <div style="font-weight: 700; margin-bottom: 0.25rem;">🚪 ล็อคเอาท์ (Logout)</div>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">ปิดเซสชัน Admin ทันที เมื่อเลิกใช้งานเพื่อความปลอดภัย</p>
+            <button type="button" id="btn-admin-logout" class="btn-touch btn-secondary" style="width: 100%; min-height: 40px; font-size: 0.85rem;">
+              ล็อคโหมด Admin
+            </button>
+          </div>
+        </div>
+
+        <div style="border-top: 1px solid var(--border-subtle); padding-top: 1rem;">
+          <div style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.6;">
+            <strong>สถานะความปลอดภัย:</strong> PIN ถูกตรวจสอบและเก็บแบบเข้ารหัส <code>SHA-256</code> บน <strong>Google Apps Script (เซิร์ฟเวอร์)</strong> ไม่บันทึก PIN ในเบราว์เซอร์ | เซสชันใช้ Token ที่หมดอายุใน 8 ชั่วโมง | ล็อค 30 วินาทีเมื่อกรอกผิด 5 ครั้ง | ล็อคอัตโนมัติเมื่อไม่ใช้งาน 15 นาที
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- JavaScript Bundles -->
+  <script src="js/api.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>
